@@ -1016,11 +1016,11 @@ try {
 
     const data = await response.json();
     responseText = data.response || "Hmm... that’s one I’ll need to check and 'circle back' on!";
-                
-            } catch (error) {
-                console.error('API Error:', error);
-                responseText = generateFallbackResponse(currentCharacter, option);
-            }
+
+} catch (error) {
+    console.error('API Error:', error);
+    responseText = generateFallbackResponse(currentCharacter, option);
+}
             
             currentCharacter.userData.conversations.push({
                 user: option,
