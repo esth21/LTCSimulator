@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Connection Test</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+    pre {
+      background: #f4f4f4;
+      text-align: left;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>🔍 Test Hugging Face API Connection</h2>
+  <p>Type a question and check if your Hugging Face Space responds correctly.</p>
+
+  <textarea id="question" placeholder="Ask a question (e.g., What is legal tech?)"></textarea>
+  <button id="send">Send to /chat</button>
+  <pre id="result"></pre>
+
+  <script>
+    const API_URL = "https://esth21-LTCSimulator.hf.space/chat"; // update if your Space name is different
+
+    document.getElementById("send").addEventListener("click", async () => {
+      const question = document.getElementById("question").value.trim();
+      const result = document.getElementById("result");
+      result.textContent = "⏳ Sending...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            user_message: question || "Hello!",
+            character: {
+              name: "Test Bot",
+              role: "Legal Tech Assistant",
+              personality: "friendly and concise",
+              quirk: "likes clean JSON outputs"
+            }
+          })
+        });
+
+        const data = await response.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.textContent = "❌ Connection failed:\n" + error;
+      }
+    });
+  </script>
+</body>
+</html>
