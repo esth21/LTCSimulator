@@ -225,6 +225,16 @@
             setTimeout(() => div.remove(), 2000);
         }
         
+        // 🧠 Typing effect for character dialogue
+        async function typeText(element, text, delay = 20) {
+        element.innerHTML = ""; // Clear old text
+        for (let i = 0; i < text.length; i++) {
+            element.innerHTML += text.charAt(i);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            element.scrollTop = element.scrollHeight; // Keep scroll at bottom
+            }
+        }
+
         // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
@@ -691,7 +701,7 @@
         const sajj = createCharacter('Sajj Haider', 'Legal Technologist', 5, 0, 0x20b2aa, {
             hairColor: 0xf0f0f0,
             personality: 'pragmatic and caffeine-powered',
-            quirk: 'solves problems between coffee breaks, measures productivity in espresso shots'
+            quirk: 'balances dry humour and internet meme references with genuinely helpful advice; often frames complex legal tech issues as memes before explaining them seriously'
         });
         
         const baby = createBaby('Baby', 0, -15);
@@ -966,95 +976,92 @@
         }
         
         async function selectOption(option) {
-            if (!currentCharacter) return;
-            
-            dialogueContent.innerHTML += `<p><strong>You:</strong> ${option}</p>`;
-            dialogueContent.innerHTML += `<p><strong>${currentCharacter.userData.name}:</strong> <span class="loading"></span></p>`;
-            
-            dialogueContent.scrollTop = dialogueContent.scrollHeight;
-            
-            const customQuestionInput = document.getElementById('custom-question-input');
-            const customQuestionSubmit = document.getElementById('custom-question-submit');
-            
-            dialogueOptions.style.pointerEvents = 'none';
-            dialogueOptions.style.opacity = '0.5';
-            customQuestionInput.disabled = true;
-            customQuestionSubmit.disabled = true;
-            
-            let responseText = "";
-            
-            try {
-                const prompt = `You are roleplaying as ${currentCharacter.userData.name}, ${currentCharacter.userData.role} on a legal technology team.
-Character traits: ${currentCharacter.userData.personality}, ${currentCharacter.userData.quirk}
-User question: "${option}"
+    if (!currentCharacter) return;
+    
+    dialogueContent.innerHTML += `<p><strong>You:</strong> ${option}</p>`;
+    dialogueContent.innerHTML += `<p><strong>${currentCharacter.userData.name}:</strong> <span class="loading"></span></p>`;
+    
+    dialogueContent.scrollTop = dialogueContent.scrollHeight;
+    
+    const customQuestionInput = document.getElementById('custom-question-input');
+    const customQuestionSubmit = document.getElementById('custom-question-submit');
+    
+    dialogueOptions.style.pointerEvents = 'none';
+    dialogueOptions.style.opacity = '0.5';
+    customQuestionInput.disabled = true;
+    customQuestionSubmit.disabled = true;
+    
+    let responseText = "";
+    
+    try {
+        // Call your Hugging Face Space API
+        const response = await fetch("https://esth21-LTCSimulator.hf.space/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                user_message: option,
+                character: {
+                    name: currentCharacter.userData.name,
+                    role: currentCharacter.userData.role,
+                    personality: currentCharacter.userData.personality,
+                    quirk: currentCharacter.userData.quirk,
+                    isBaby: currentCharacter.userData.isBaby || false
+                }
+            }),
+        });
 
-${currentCharacter.userData.isBaby ? 
-'You are a baby. Respond with baby talk, random syllables, and describe cute baby actions. Include emojis. Make it adorable and silly.' :
-'You are a legal technology expert. Provide helpful, practical advice about legal tech tools, workflows, automation, AI in legal practice, and implementation strategies. Be friendly, knowledgeable, and reference your quirk naturally. Focus on real-world applications.'}
-
-${currentCharacter.userData.name === 'Tina Lepomme' ? 'IMPORTANT: End your entire response with "thanks." (lowercase t) - this is your signature sign-off.' : ''}
-
-${option.length > 50 ? 'This is a custom question from the user, so be creative and stay in character!' : ''}
-
-Respond in 60-100 words with personality and humor.
-
-IMPORTANT: Output ONLY valid JSON:
-{"response": "your character's response here"}`;
-
-// NEW: Hugging Face FastAPI + OpenAI proxy version
-try {
-    const response = await fetch("https://esth21-LTCSimulator.hf.space/chat", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            user_message: option,
-            character: currentCharacter.userData
-        }),
-    });
-
-    const data = await response.json();
-    responseText = data.response || "Hmm... that’s one I’ll need to check and 'circle back' on!";
-
-} catch (error) {
-    console.error('API Error:', error);
-    responseText = generateFallbackResponse(currentCharacter, option);
-}
-            
-            currentCharacter.userData.conversations.push({
-                user: option,
-                response: responseText
-            });
-            
-            dialogueContent.innerHTML = dialogueContent.innerHTML.replace(
-                '<span class="loading"></span>',
-                responseText
-            );
-            
-            dialogueContent.scrollTop = dialogueContent.scrollHeight;
-            
-            if (Math.random() < 0.2) {
-                createFloatingText('💡', currentCharacter.position);
-            }
-            
-            const newOptions = generateDialogueOptions(currentCharacter);
-            dialogueOptions.innerHTML = '';
-            
-            newOptions.forEach(opt => {
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'dialogue-option';
-                optionDiv.textContent = opt;
-                optionDiv.onclick = () => selectOption(opt);
-                dialogueOptions.appendChild(optionDiv);
-            });
-            
-            dialogueOptions.style.pointerEvents = 'auto';
-            dialogueOptions.style.opacity = '1';
-            customQuestionInput.disabled = false;
-            customQuestionSubmit.disabled = false;
-            customQuestionInput.focus();
+        if (response.ok) {
+            const data = await response.json();
+            responseText = data.response || "Hmm... that's one I'll need to check and 'circle back' on!";
+            console.log('✅ Using AI-generated response from Hugging Face Space');
+        } else {
+            console.warn('⚠️ API returned error status:', response.status);
+            throw new Error('API returned error');
         }
+
+    } catch (error) {
+        console.error('❌ API Error:', error);
+        console.log('📝 Using enhanced fallback response');
+        responseText = generateFallbackResponse(currentCharacter, option);
+    }
+    
+    currentCharacter.userData.conversations.push({
+        user: option,
+        response: responseText
+    });
+    
+    const loadingSpan = dialogueContent.querySelector(".loading");
+if (loadingSpan) {
+    const container = document.createElement("span");
+    loadingSpan.replaceWith(container);
+    await typeText(container, responseText, 20); // Typing speed (ms per char)
+}
+    
+    dialogueContent.scrollTop = dialogueContent.scrollHeight;
+    
+    if (Math.random() < 0.2) {
+        createFloatingText('💡', currentCharacter.position);
+    }
+    
+    const newOptions = generateDialogueOptions(currentCharacter);
+    dialogueOptions.innerHTML = '';
+    
+    newOptions.forEach(opt => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'dialogue-option';
+        optionDiv.textContent = opt;
+        optionDiv.onclick = () => selectOption(opt);
+        dialogueOptions.appendChild(optionDiv);
+    });
+    
+    dialogueOptions.style.pointerEvents = 'auto';
+    dialogueOptions.style.opacity = '1';
+    customQuestionInput.disabled = false;
+    customQuestionSubmit.disabled = false;
+    customQuestionInput.focus();
+}
         
         function generateFallbackResponse(character, question) {
             if (character.userData.isBaby) {
@@ -1101,10 +1108,9 @@ try {
                     'The most interesting bugs are the ones nobody expected. That\'s where you learn the most about how systems actually work versus how you think they work!'
                 ],
                 'Sajj Haider': [
-                    'Let me grab my third espresso and I\'ll explain... *sips coffee* Okay, so the elegant solution here is to automate the entire workflow.',
-                    'Coffee-fueled pragmatism is my approach. Why spend hours on manual work when you can automate it in less time than it takes to brew a pot?',
-                    'I measure project complexity in cups of coffee required. This one? Definitely a four-shot problem. Let\'s get caffeinated and solve it!',
-                    'Best technical solutions come to me around my second coffee. By the fourth, I\'ve already implemented it. Efficiency meets caffeine! ☕'
+                    'Legal tech problems? Easy. Step 1: turn it into a meme. Step 2: fix it. Step 3: sip coffee while pretending it was easy. ☕',
+                    'Honestly, automation isn’t just about saving time—it’s about saving brain cells for when you actually need to think. Meme it, automate it, move on.',
+                    'Picture your workflow as a meme template: we identify the punchline (the inefficiency), then redesign it so the joke lands every time.','The secret? Marry practicality with humour. I use memes to make lawyers laugh *and* understand why process automation matters. Keeps everyone awake—no espresso required (okay, maybe one).'
                 ]
             };
             
