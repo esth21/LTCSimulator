@@ -1014,25 +1014,12 @@
 
 if (response.ok) {
     const data = await response.json();
-
-    // 🧠 Handle double-wrapped JSON responses (if the backend returns JSON inside JSON)
-    if (typeof data.response === "string" && data.response.trim().startsWith("{")) {
-        try {
-            const parsed = JSON.parse(data.response);
-            responseText = parsed.response || data.response;
-        } catch {
-            responseText = data.response;
-        }
-    } else {
-        responseText = data.response || "Hmm... that's one I'll need to check and 'circle back' on!";
-    }
-
+    responseText = data.response || "Hmm... that's one I'll need to check and 'circle back' on!";
     console.log('✅ Using AI-generated response from Hugging Face Space');
 } else {
     console.warn('⚠️ API returned error status:', response.status);
     throw new Error('API returned error');
 }
-
 
     } catch (error) {
         console.error('❌ API Error:', error);
